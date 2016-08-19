@@ -10,13 +10,13 @@ dependencies:
   override:
     - docker info
     - if [[ -e ~/docker/image.tar ]]; then docker load --input ~/docker/image.tar; fi
-    - docker build -t unifio/rabbitmq .
-    - cd management && docker build -t unifio/rabbitmq-mgmnt .
-    - mkdir -p ~/docker; docker save unifio/rabbitmq-mgmnt > ~/docker/image.tar
+    - docker build -t rabbitmq .
+    - cd management && docker build -t rabbitmq-mgmnt .
+    - mkdir -p ~/docker; docker save rabbitmq-mgmnt > ~/docker/image.tar
 
 test:
   override:
-    - docker run -d --hostname my-rabbit --name some-rabbit unifio/rabbitmq-mgmnt
+    - docker run -d --hostname my-rabbit --name some-rabbit rabbitmq-mgmnt
     - docker ps | grep rabbitmq
     
 deployment:
@@ -24,6 +24,6 @@ deployment:
     branch: master
     commands:
       - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
-      - docker tag -f `docker images | grep -E 'unifio/rabbitmq' | awk '{print $3}'` unifio/rabbitmq:${RABBITMQ_VERSION}
-      - docker tag -f `docker images | grep -E 'unifio/rabbitmq-mgmnt' | awk '{print $3}'` unifio/rabbitmq:${RABBITMQ_VERSION}-management
+      - docker tag -f `docker images | grep -E 'rabbitmq' | awk '{print $3}'` unifio/rabbitmq:${RABBITMQ_VERSION}
+      - docker tag -f `docker images | grep -E 'rabbitmq-mgmnt' | awk '{print $3}'` unifio/rabbitmq:${RABBITMQ_VERSION}-management
       - docker push unifio/rabbitmq
