@@ -35,6 +35,9 @@ rabbitConfigKeys=(
 	default_user
 	default_vhost
 	hipe_compile
+	cluster_nodes
+	cluster_partition_handling
+	cluster_keepalive_interval
 )
 fileConfigKeys=(
 	management_ssl_cacertfile
@@ -61,6 +64,7 @@ declare -A configDefaults=(
 haveConfig=
 haveSslConfig=
 haveManagementSslConfig=
+haveClusteringConfig=
 for conf in "${allConfigKeys[@]}"; do
 	var="RABBITMQ_${conf^^}"
 	val="${!var:-}"
@@ -69,6 +73,7 @@ for conf in "${allConfigKeys[@]}"; do
 		case "$conf" in
 			ssl_*) haveSslConfig=1 ;;
 			management_ssl_*) haveManagementSslConfig=1 ;;
+			cluster_*) haveClusteringConfig=1 ;;
 		esac
 	fi
 done
@@ -229,6 +234,16 @@ if [ "$1" = 'rabbitmq-server' ] && [ "$haveConfig" ]; then
 		)
 	fi
 
+	if [ "$haveClusteringConfig" ]; then
+		IFS=$'\n'
+		rabbitClusterNodes=( $(rabbit_env_config 'cluster_nodes' "${rabbitConfigKeys[@]}") )
+		unset IFS
+
+		rabbitConfig+=(
+			"{ cluster_nodes, { $(rabbit_array "${rabbitClusterNodes[@]}"), disc}}"
+		)
+	fi
+
 	IFS=$'\n'
 	rabbitConfig+=( $(rabbit_env_config '' "${rabbitConfigKeys[@]}") )
 	unset IFS
@@ -256,6 +271,12 @@ if [ "$1" = 'rabbitmq-server' ] && [ "$haveConfig" ]; then
 
 		fullConfig+=(
 			"{ rabbitmq_management, $(rabbit_array "{ listener, $(rabbit_array "${rabbitManagementListenerConfig[@]}") }") }"
+		)
+	fi
+
+    if [ "$haveClusteringConfig" ]; then
+		fullConfig+=(
+			"{ }"
 		)
 	fi
 
