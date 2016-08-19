@@ -1,6 +1,6 @@
 machine:
   environment:
-    RABBIT_VERSION: 3.6.5-management
+    RABBITMQ_VERSION: 3.6.5
   services:
     - docker
 
@@ -11,11 +11,12 @@ dependencies:
     - docker info
     - if [[ -e ~/docker/image.tar ]]; then docker load --input ~/docker/image.tar; fi
     - docker build -t unifio/rabbitmq .
-    - mkdir -p ~/docker; docker save unifio/rabbitmq > ~/docker/image.tar
+    - cd management && docker build -t unifio/rabbitmq-mgmnt .
+    - mkdir -p ~/docker; docker save unifio/rabbitmq-mgmnt > ~/docker/image.tar
 
 test:
   override:
-    - docker run -d --hostname my-rabbit --name some-rabbit unifio/rabbitmq
+    - docker run -d --hostname my-rabbit --name some-rabbit unifio/rabbitmq-mgmnt
     - docker ps | grep rabbitmq
     
 deployment:
@@ -24,4 +25,5 @@ deployment:
     commands:
       - docker login -e $DOCKER_EMAIL -u $DOCKER_USER -p $DOCKER_PASS
       - docker tag -f `docker images | grep -E 'unifio/rabbitmq' | awk '{print $3}'` unifio/rabbitmq:${RABBITMQ_VERSION}
+      - docker tag -f `docker images | grep -E 'unifio/rabbitmq-mgmnt' | awk '{print $3}'` unifio/rabbitmq:${RABBITMQ_VERSION}-management
       - docker push unifio/rabbitmq
