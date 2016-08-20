@@ -73,7 +73,7 @@ for conf in "${allConfigKeys[@]}"; do
 		case "$conf" in
 			ssl_*) haveSslConfig=1 ;;
 			management_ssl_*) haveManagementSslConfig=1 ;;
-			cluster_*) haveClusteringConfig=1 ;;
+			cluster_nodes) haveClusteringConfig=1 ;;
 		esac
 	fi
 done
@@ -197,6 +197,15 @@ rabbit_env_config() {
 				rawVal='"'"$val"'"'
 				;;
 
+			cluster_partition_handling|cluster_keepalive_interval)
+				[ "$val" ] || continue
+				rawVal="$val"
+				;;
+
+			cluster_nodes)
+				continue
+				;;
+
 			*)
 				[ "$val" ] || continue
 				rawVal='<<"'"$val"'">>'
@@ -235,12 +244,11 @@ if [ "$1" = 'rabbitmq-server' ] && [ "$haveConfig" ]; then
 	fi
 
 	if [ "$haveClusteringConfig" ]; then
-		IFS=$'\n'
-		rabbitClusterNodes=( $(rabbit_env_config 'cluster_nodes' "${rabbitConfigKeys[@]}") )
-		unset IFS
+		var="RABBITMQ_CLUSTER_NODES"
+		val="${!var:-}"
 
 		rabbitConfig+=(
-			"{ cluster_nodes, { $(rabbit_array "${rabbitClusterNodes[@]}"), disc}}"
+			"{ cluster_nodes, { $(rabbit_array $(IFS=','; for i in `echo "${val}"`; do echo "'"$i"'"; done) ), disc } }"
 		)
 	fi
 
@@ -271,12 +279,6 @@ if [ "$1" = 'rabbitmq-server' ] && [ "$haveConfig" ]; then
 
 		fullConfig+=(
 			"{ rabbitmq_management, $(rabbit_array "{ listener, $(rabbit_array "${rabbitManagementListenerConfig[@]}") }") }"
-		)
-	fi
-
-    if [ "$haveClusteringConfig" ]; then
-		fullConfig+=(
-			"{ }"
 		)
 	fi
 
