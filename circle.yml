@@ -1,6 +1,6 @@
 machine:
   environment:
-    RABBITMQ_VERSION: 3.6.5
+    RABBITMQ_VERSION: 3.6.6
   services:
     - docker
 
