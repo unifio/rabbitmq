@@ -74,7 +74,7 @@ RUN ln -sf /var/lib/rabbitmq/.erlang.cookie /root/
 RUN ln -sf /usr/lib/rabbitmq/lib/rabbitmq_server-$RABBITMQ_VERSION/plugins /plugins
 
 # Add envconsul
-ENV ENVCONSUL_VERSION=0.6.1
+ENV ENVCONSUL_VERSION=0.6.2
 ENV CONSUL_HTTP_ADDR=localhost:8500
 
 RUN apt-get update && \
