@@ -51,6 +51,7 @@ allConfigKeys=(
 	"${managementConfigKeys[@]/#/management_}"
 	"${rabbitConfigKeys[@]}"
 	"${sslConfigKeys[@]/#/ssl_}"
+	admin_config
 )
 
 declare -A configDefaults=(
@@ -64,6 +65,7 @@ declare -A configDefaults=(
 haveConfig=
 haveSslConfig=
 haveManagementSslConfig=
+haveAdminConfig=
 haveClusteringConfig=
 for conf in "${allConfigKeys[@]}"; do
 	var="RABBITMQ_${conf^^}"
@@ -73,6 +75,7 @@ for conf in "${allConfigKeys[@]}"; do
 		case "$conf" in
 			ssl_*) haveSslConfig=1 ;;
 			management_ssl_*) haveManagementSslConfig=1 ;;
+			admin_config) haveAdminConfig=1 ;;
 			cluster_nodes) haveClusteringConfig=1 ;;
 		esac
 	fi
@@ -277,8 +280,18 @@ if [ "$1" = 'rabbitmq-server' ] && [ "$haveConfig" ]; then
 			)
 		fi
 
+		managementConfig+=(
+			"{ listener, $(rabbit_array "${rabbitManagementListenerConfig[@]}") }"
+		)
+
+		if [ "$haveAdminConfig" ]; then
+			managementConfig+=(
+				"{ load_definitions, \"/etc/rabbitmq/rabbitmq_definitions.json\" }"
+			)
+		fi
+
 		fullConfig+=(
-			"{ rabbitmq_management, $(rabbit_array "{ listener, $(rabbit_array "${rabbitManagementListenerConfig[@]}") }") }"
+			"{ rabbitmq_management, $(rabbit_array "${managementConfig[@]}") }"
 		)
 	fi
 
@@ -293,11 +306,13 @@ if [ "$haveSslConfig" ] && [[ "$1" == rabbitmq* ]] && [ ! -f "$combinedSsl" ]; t
 fi
 if [ "$haveSslConfig" ] && [ -f "$combinedSsl" ]; then
 	# More ENV vars for make clustering happiness
-	# we don't handle clustering in this script, but these args should ensure
-	# clustered SSL-enabled members will talk nicely
 	export ERL_SSL_PATH="$(erl -eval 'io:format("~p", [code:lib_dir(ssl, ebin)]),halt().' -noshell)"
 	export RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS="-pa $ERL_SSL_PATH -proto_dist inet_tls -ssl_dist_opt server_certfile $combinedSsl -ssl_dist_opt server_secure_renegotiate true client_secure_renegotiate true"
 	export RABBITMQ_CTL_ERL_ARGS="$RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS"
+fi
+
+if [ "$haveAdminConfig" ]; then
+	echo -e "${RABBITMQ_ADMIN_CONFIG}" > /etc/rabbitmq/rabbitmq_definitions.json
 fi
 
 exec "$@"

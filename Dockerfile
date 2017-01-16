@@ -76,6 +76,7 @@ RUN ln -sf /usr/lib/rabbitmq/lib/rabbitmq_server-$RABBITMQ_VERSION/plugins /plug
 # Add envconsul
 ENV ENVCONSUL_VERSION=0.6.2
 ENV CONSUL_HTTP_ADDR=localhost:8500
+ENV RABBITMQ_ADMIN_OVERRIDE_CLUSTER_DEFAULTS=false
 
 RUN apt-get update && \
     apt-get -y install curl jq unzip && \
