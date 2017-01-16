@@ -22,6 +22,14 @@ if [ ! -z "$CONSUL_PREFIX" ]; then
       if $(curl -s -X PUT http://${CONSUL_HTTP_ADDR}/v1/kv/service/${CONSUL_SERVICE}/leader?acquire=${CONSUL_SESSION}); then
         export CLUSTER_SEED=true
         echo 'This node is the first in the cluster'
+
+        # Admin config will override defaults unless the cluster is already up and running.
+        # This option allows the cluster seed node to ignore the admin config if the intent is for it to be additive only.
+        if [ ! -z $RABBITMQ_ADMIN_CONFIG ] && [ "${RABBITMQ_ADMIN_OVERRIDE_CLUSTER_DEFAULTS}" = false ]; then
+          echo 'Ignoring admin config so that standard defaults are established'
+          unset RABBITMQ_ADMIN_CONFIG
+        fi
+
         break
       fi
 
